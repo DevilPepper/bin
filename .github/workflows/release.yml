@@ -1,0 +1,49 @@
+name: Build and Release binaries
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: bin
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-i3lock-color:
+    uses: ./.github/workflows/build-i3lock-color.yml
+
+  build-xmonad:
+    uses: ./.github/workflows/build-xmonad.yml
+
+  release:
+    needs:
+      - build-i3lock-color
+      - build-xmonad
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        merge-multiple: true
+        path: bin/
+
+    - name: Create release with binaries
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        dt=$(date +%Y-%m-%d --utc)
+        s=$(date -d "1970-01-01 UTC $(date +%T --utc)" +%s)
+        GIT_TAG=$(printf "%s-%05d" $dt $s)
+        gh release create $GIT_TAG --title "Binaries" bin/*

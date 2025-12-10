@@ -1,13 +1,7 @@
-name: Build and Release XMonad
+name: Build XMonad
 
 on:
-  push:
-    branches:
-      - main
-
-concurrency:
-  group: xmonad
-  cancel-in-progress: true
+  workflow_call:
 
 defaults:
   run:
@@ -57,29 +51,3 @@ jobs:
       with:
         name: xmonad-binaries
         path: bin/
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: xmonad-binaries
-        path: bin/
-
-    - name: Create release with binaries
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        dt=$(date +%Y-%m-%d --utc)
-        s=$(date -d "1970-01-01 UTC $(date +%T --utc)" +%s)
-        GIT_TAG=$(printf "marlin%s-%05d" $dt $s)
-        gh release create $GIT_TAG --title "XMonad binaries" bin/*
